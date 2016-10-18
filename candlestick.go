@@ -3,9 +3,75 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"mylib/asker"
+	"strconv"
 	"time"
 )
 
+type Player struct {
+	deck    []int
+	hand    []int
+	score   int
+	isHuman bool
+}
+
+func NewPlayer(isH bool) *Player {
+	res := &Player{
+		makeDeck(),
+		make([]int, 0),
+		0,
+		isH,
+	}
+
+	res.DrawCards(3)
+	return res
+}
+
+func (self *Player) DrawCards(n int) bool {
+	if len(self.deck) == 0 {
+		return false
+	}
+	self.hand = append(self.hand, self.deck[:n]...)
+	self.deck = self.deck[n:]
+	return true
+}
+
+func (self *Player) ChooseCard() int {
+	a := self.hand[0]
+	if self.isHuman {
+		a = AskCard(self.hand)
+	}
+
+	h2 := make([]int, 0)
+	for _, v := range self.hand {
+		if v != a {
+			h2 = append(h2, v)
+		}
+	}
+	self.hand = h2
+	self.DrawCards(1)
+	return a
+}
+
+func AskCard(cards []int) int {
+	mess := "Please choose a card from "
+	for _, v := range cards {
+		mess += strconv.Itoa(v) + ", "
+	}
+
+	for {
+		a := asker.AskInt(mess)
+		if contains(cards, a) > 0 {
+			return a
+		}
+
+		fmt.Println("Stick to the list please")
+
+	}
+
+}
+
+//contains returns the number of elements in the slice that match the comparator (c)
 func contains(ar []int, c int) int {
 	res := 0
 	for i := 0; i < len(ar); i++ {
@@ -33,8 +99,9 @@ func beats(c1, c2 int, aceHigh, reverse bool) bool {
 }
 
 //DecideTrick Takes a list of cards, one for each player, and decides who won according to CandleStick Rules
-//returns -1 for a draw
-func DecideTrick(ar []int) int {
+//returns winningPlayer, winningCard
+//returns -1,-1 for a draw
+func DecideTrick(ar []int) (int, int) {
 
 	uniques := make([]int, 0)
 
@@ -45,7 +112,7 @@ func DecideTrick(ar []int) int {
 	}
 
 	if len(uniques) == 0 {
-		return -1
+		return -1, -1
 	}
 
 	aceHigh := contains(uniques, 13) > 0
@@ -65,7 +132,14 @@ func DecideTrick(ar []int) int {
 			winningCard = uniques[i]
 		}
 	}
-	return winningCard
+
+	winningPlayer := -1
+	for k, v := range ar {
+		if v == winningCard {
+			winningPlayer = k
+		}
+	}
+	return winningPlayer, winningCard
 
 }
 
@@ -86,15 +160,43 @@ func makeDeck() []int {
 
 }
 
+func round(pl []*Player, first int) {
+	pnum := first
+	complete := false
+	chosens := make([]int, len(pl))
+	for !complete {
+		chosens[pnum] = pl[pnum].ChooseCard()
+		fmt.Printf("p%d : %d\n", pnum, chosens[pnum])
+		pnum = (pnum + 1) % len(pl)
+		if pnum == first {
+			complete = true
+		}
+	}
+
+	winP, winC := DecideTrick(chosens)
+	pl[winP].score++
+	fmt.Printf("Player %d wins with %d\n", winP, winC)
+
+	scoresMess := "Scores : "
+	for _, v := range pl {
+		scoresMess += strconv.Itoa(v.score) + " "
+	}
+	fmt.Println(scoresMess)
+
+}
+
 func main() {
 
 	rand.Seed(time.Now().Unix())
 
-	allDecks := make([][]int, 4)
-
+	players := make([]*Player, 4)
 	for i := 0; i < 4; i++ {
-		allDecks[i] = makeDeck()
+		players[i] = NewPlayer(i == 0)
+		//		fmt.Printf("%s,\n%s\n,%d\n\n", players[i].deck, players[i].hand, players[i].score)
 	}
 
-	fmt.Println(allDecks)
+	for i := 0; i < 13; i++ {
+		round(players, i%4)
+	}
+
 }
