@@ -6,14 +6,31 @@ import (
 	"mylib/asker"
 	"net/http"
 	"strconv"
+	"strings"
+	"text/template"
 	"time"
 )
 
 type Player struct {
-	deck    []int
-	hand    []int
-	score   int
-	isHuman bool
+	Deck    []int
+	Hand    []int
+	Score   int
+	IsHuman bool
+}
+
+type Game struct {
+	Players []*Player
+	LastWon int
+	Message string
+}
+
+func NewGame(nplayers int) *Game {
+
+	players := make([]*Player, nplayers)
+	for i := 0; i < nplayers; i++ {
+		players[i] = NewPlayer(i == 0)
+	}
+	return &Game{players, -1, ""}
 }
 
 func NewPlayer(isH bool) *Player {
@@ -29,27 +46,27 @@ func NewPlayer(isH bool) *Player {
 }
 
 func (self *Player) DrawCards(n int) bool {
-	if len(self.deck) == 0 {
+	if len(self.Deck) == 0 {
 		return false
 	}
-	self.hand = append(self.hand, self.deck[:n]...)
-	self.deck = self.deck[n:]
+	self.Hand = append(self.Hand, self.Deck[:n]...)
+	self.Deck = self.Deck[n:]
 	return true
 }
 
 func (self *Player) ChooseCard() int {
-	a := self.hand[0]
-	if self.isHuman {
-		a = AskCard(self.hand)
+	a := self.Hand[0]
+	if self.IsHuman {
+		a = AskCard(self.Hand)
 	}
 
 	h2 := make([]int, 0)
-	for _, v := range self.hand {
+	for _, v := range self.Hand {
 		if v != a {
 			h2 = append(h2, v)
 		}
 	}
-	self.hand = h2
+	self.Hand = h2
 	self.DrawCards(1)
 	return a
 }
@@ -100,6 +117,7 @@ func beats(c1, c2 int, aceHigh, reverse bool) bool {
 }
 
 //DecideTrick Takes a list of cards, one for each player, and decides who won according to CandleStick Rules
+
 //returns winningPlayer, winningCard
 //returns -1,-1 for a draw
 func DecideTrick(ar []int) (int, int) {
@@ -175,12 +193,12 @@ func round(pl []*Player, first int) int {
 	}
 
 	winP, winC := DecideTrick(chosens)
-	pl[winP].score++
+	pl[winP].Score++
 	fmt.Printf("Player %d wins with %d\n", winP, winC)
 
 	scoresMess := "Scores : "
 	for _, v := range pl {
-		scoresMess += strconv.Itoa(v.score) + " "
+		scoresMess += strconv.Itoa(v.Score) + " "
 	}
 	fmt.Println(scoresMess)
 
@@ -193,12 +211,10 @@ func playGame(nplayers int) int {
 		return -1
 	}
 
-	rand.Seed(time.Now().Unix())
-
 	players := make([]*Player, nplayers)
 	for i := 0; i < nplayers; i++ {
 		players[i] = NewPlayer(i == 0)
-		//		fmt.Printf("%s,\n%s\n,%d\n\n", players[i].deck, players[i].hand, players[i].score)
+		//		fmt.Printf("%s,\n%s\n,%d\n\n", players[i].Deck, players[i].Hand, players[i].score)
 	}
 
 	w := -1
@@ -214,15 +230,15 @@ func playGame(nplayers int) int {
 	wp := -1
 
 	for k, p := range players {
-		if p.score > ws {
+		if p.Score > ws {
 			count := 0
 			for i := 0; i < len(players); i++ {
-				if p.score == players[i].score {
+				if p.Score == players[i].Score {
 					count++
 				}
 			}
 			if count == 1 {
-				ws = p.score
+				ws = p.Score
 				wp = k
 			}
 		}
@@ -237,15 +253,48 @@ func playGame(nplayers int) int {
 	return wp
 }
 
+//Webby Section
+//
+//
+
+var temps *template.Template
+var game *Game
+
 func handle(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "<a href=\"/go\">Hello</a>, you pathed to :%s", r.URL.Path)
+	path := strings.TrimPrefix(r.URL.Path, "/")
+	a, err := strconv.Atoi(path)
+	if err == nil {
+		//Play round of game
+
+	} else {
+		game.Message = fmt.Sprintf("Error:%d", err)
+
+	}
+
+	err = temps.Execute(w, game)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Fprintln(w, err)
+	}
 }
 
 func main() {
+	rand.Seed(time.Now().Unix())
+
+	var err error
+
+	temps, err = template.ParseGlob("templates/*.html")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	game = NewGame(5)
+
 	http.HandleFunc("/", handle)
 
 	fmt.Printf("Server Starting\n")
-	err := http.ListenAndServe(":8081", nil)
+	err = http.ListenAndServe(":8081", nil)
 	if err != nil {
 		fmt.Println(err)
 	}
