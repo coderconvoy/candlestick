@@ -5,8 +5,22 @@
 </head>
 <body>
     <h1>Unique CandleStick</h1>
+    <h2>This round</h2>
+   
+    {{$nRounds := len .Rounds }} 
+    {{$nRounds }} 
+    {{$chos := index .Rounds $nRounds}}
+    {{range $k, $v := $chos }}
+        {{if ne $v 0 }}
+            <p>Player {{$k }} chose {{ $v }}</p>
+        {{end}}    
+    {{end}}
+
     <p>Please Choose a Card</p>
     {{$a := index .Players 0}}
+    {{range $a.Hand }}
+        <a href="{{.}}">{{.}}</a><br>
+    {{end}}
 
 </body>
 </html>
