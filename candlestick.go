@@ -37,7 +37,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	err = temps.Execute(w, game)
+	err = temps.ExecuteTemplate(w, "main.html", game)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Fprintln(w, err)
@@ -49,7 +49,17 @@ func main() {
 
 	var err error
 
-	temps, err = template.ParseGlob("templates/*.html")
+	fmap := template.FuncMap{
+		"add": func(i ...int) int {
+			res := 0
+			for _, v := range i {
+				res += v
+			}
+			return res
+		},
+	}
+
+	temps, err = template.New("").Funcs(fmap).ParseGlob("templates/*.html")
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -1,3 +1,14 @@
+{{define "round"}}
+    {{range $k ,$v := .Played}}
+        {{if ne $v 0 }}
+        P{{$k}} <b>{{$v}}</b> , 
+        {{end}}
+    {{end}}
+    {{if ne .Winner -1}}
+        <br>Winner = P{{.Winner}}</br>
+    {{end }}
+{{end}}
+
 <!DOCTYPE HTML>
 <html>
 <head>
@@ -5,17 +16,13 @@
 </head>
 <body>
     <h1>Unique CandleStick</h1>
-    <h2>This round</h2>
-   
-    {{$nRounds := len .Rounds }} 
-    {{$nRounds }} 
-    {{$chos := index .Rounds $nRounds}}
-    {{range $k, $v := $chos }}
-        {{if ne $v 0 }}
-            <p>Player {{$k }} chose {{ $v }}</p>
-        {{end}}    
+    <h2>So Far</h2>
+    {{range .Rounds}}
+    {{template "round" .}}<br>
     {{end}}
-
+    <h2>This round</h2>
+    {{template "round" (index .Rounds (add (len .Rounds) -1))}}
+   
     <p>Please Choose a Card</p>
     {{$a := index .Players 0}}
     {{range $a.Hand }}

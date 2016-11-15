@@ -2,6 +2,7 @@ package types
 
 import (
 	"candlestick/pure"
+	"fmt"
 	"math/rand"
 )
 
@@ -70,6 +71,10 @@ func (g *Game) HumanTurn(c int) bool {
 
 	return true
 
+}
+
+func (g *Game) HelloWorld(s string) string {
+	return fmt.Sprintf("hello world1111, %s\n", s)
 }
 
 func (g *Game) TryTurn() (int, int) {
