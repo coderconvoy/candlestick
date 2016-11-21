@@ -1,8 +1,8 @@
 package types
 
 import (
-	"candlestick/pure"
 	"fmt"
+	"github.com/coderconvoy/candlestick/pure"
 	"math/rand"
 )
 
