@@ -1,8 +1,8 @@
 package main
 
 import (
-	"candlestick/types"
 	"fmt"
+	"github.com/coderconvoy/candlestick/types"
 	"math/rand"
 	"net/http"
 	"strconv"
